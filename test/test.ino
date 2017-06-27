@@ -1,45 +1,39 @@
 
   int lightPin = 2;
-  int val = 0;
-  int inV = 0;
-  char a[4];
+  char a[5];
   byte cI = 0;
   
-
-
 void setup() {
   Serial.begin(74880);
-  
-  pinMode(lightPin, OUTPUT);
+  //pinMode(lightPin, OUTPUT);
   Serial.print("Gebe die Value(0-1023)ein: ");
-  Serial.print(Serial.available());
-  
+  Serial.print(Serial.available()); 
 }
 
 void loop() {
-  
-  Input(val, inV);
-  analogWrite(lightPin, val);
+  if(Serial.available() > 0){
+    delay(10);
+    Serial.println(Input());
+  }
+  //analogWrite(lightPin, );
 }
 
-int Input(int val, int inV){
-   
-   if(Serial.available() > 0){
-    for(int i = 0; i<=4; i++){
-      a[cI]= Serial.read();
-      cI++;
-    }
-      
-    
-    //if( <= 1023, inV >= 1){
-      //int val =inV;
-     
-      Serial.print(a);
-    //}
-    //else{
-      //int inV=0;
-      //Serial.println("Zahl muss >=1 und <=1023 sein.");
-    //}
+char * Input(){
+  for(int i = 0; i<=4; i++){
+          a[i]='\0';
+          cI=0; 
   }
+  while(Serial.available() > 0){
+      char t = Serial.read();
+      a[cI]= t;
+      cI++;
+      if(cI>=4){
+        a[4]='\0';
+        return a;
+        }
+      }
+    
+    a[cI]='\0';
+  return a;
 }
 
