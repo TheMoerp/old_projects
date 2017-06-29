@@ -10,6 +10,76 @@
   char ssid[] = "WLan-KI-Pro";
   char pass[] = "sVAPHCmo";
   int conCtr = 0;
+  String html = "<!DOCTYPE html>"
+"<html>"
+"<head>"
+"<title>Lampen Dimmer</title>"
+"<meta charset=\"UTF-8\">"
+"</head>"
+"<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>"
+"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+"<title>jQuery UI Slider - Default functionality</title>"
+"<link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css\">"
+"<script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>"
+"<script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>"
+"<script>"
+  "$( function() {"
+    "$(\"#slider\").slider({min: 0, max: 1023});"
+    "$(\"#slider\").on(\"slide\","
+      "function(event, ui) {"
+        "$.get(\"/dv?dv=\" + ui.value);"
+      "}"
+    ");"
+    "$(\"#on\").button().click(function() { $.get(\"/dv?dv=1023\"); });"
+    "$(\"#off\").button().click(function() { $.get(\"/dv?dv=0\"); });"
+  "} );"
+"</script>"
+"<style>"
+  "header{"
+    "color: white;"
+    "background-color: #404040;"
+    "text-align: center;"
+    "font-family: verdana;"
+        "font-size: 200%;"
+    "}  "
+    "div.middle {"
+      "border: 1px solid gray;"
+      "margin-top: 20px;"
+      "height: 620px;"
+    "}"
+    "div.text {"
+      "height: 600px;"
+      "width: 500px;"
+      "border-right: 1px solid gray;"
+      "padding-left: 20px;"
+      "padding-top: 20px;"
+    "}"
+    "normalText{"
+      "font-family: verdana;"
+    "}"
+"</style>"
+"<body>"
+  "<header>"
+    "<h1>Lampen Dimmer</h1>"
+  "</header>"
+  "<div id=\"slider\">"
+  "</div>"
+  "<div class=\"middle\">"
+    "<div class=\"text\">"
+      "<div id=\"on\">"
+      "on"
+    "</div>"
+    "<div id=\"off\">"
+      "off"
+    "</div>"
+      "<normalText>"
+        "Hier kann man die Lampe an und aus schalten!"
+      "</normalText>"
+    "</div>"
+  "</div>"
+"</body>"
+"</html>";
+
   ESP8266WebServer server(80);
   
 void setup() {
@@ -93,10 +163,13 @@ void wlanCon(){
 
 void webServerInit(){
   server.on("/", [](){
-    server.send(200, "text/html", "Hallo");
+    server.send(200, "text/html", html);
   });
   server.onNotFound([](){
     server.send(200, "text/html", "404/Error");
+  });
+  server.on("/dv", [](){
+    Serial.println("dv");
   });
   server.begin();
   Serial.println("Webserver ist online");
