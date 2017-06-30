@@ -53,7 +53,7 @@
     "border: 1px solid black;"
     "margin-top: 10%;"
     "padding: 5%;"
-    "font-size: 120%;"
+    "font-size: 110%;"
     "font-family: Arial;"
   "}"
 "</style>"
@@ -62,10 +62,10 @@
     "Lamp Control"
   "</div>"
   "<div class=\"discription\">"
-    "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit eingestellt werden."
+    "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit eingestellt werden. Zwischen dem Schalten bitte 5 Sekunden warten."
   "</div>"
   "<div class=\"dimDiv\" >"
-    "<div id=\"on\" style=\"margin-left: 48%;\">"
+    "<div id=\"on\" style=\"margin-left: 30%;\">"
       "on"
     "</div> "
     "<div id=\"off\">"
@@ -91,6 +91,7 @@ void setup() {
   Serial.println(" ");
   Serial.println("Verbinde dich mit dem WLAN < WLan-KI-Pro > mit dem Passwort < sVAPHCmo >");
   Serial.println("Verbinde dich, mit der IP-Adresse, mit der Lamp Control Seite");
+  Serial.println("Oder gebe in der Konsole einen Wert ein:");
 }
 
 void loop() {
@@ -137,6 +138,7 @@ char * Input(){
 }
 
 void wlanCon(){
+  Serial.println("");
   Serial.println("Verbindungsversuch ");
   Serial.print("SSID: ");
   Serial.println(ssid);
@@ -177,7 +179,6 @@ void webServerInit(){
 }
 
 void lampControl(){
-  delay(500);
   Serial.println("");
   Serial.print(val);
   Serial.println(" ist jetzt die Value.");
