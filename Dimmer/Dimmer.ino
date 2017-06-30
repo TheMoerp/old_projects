@@ -10,6 +10,7 @@
   char ssid[] = "WLan-KI-Pro";
   char pass[] = "sVAPHCmo";
   int conCtr = 0;
+  String httpGet = "";
   String html = "<!DOCTYPE html>"
 "<html>"
 "<head>"
@@ -18,13 +19,12 @@
 "</head>"
 "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js\"></script>"
 "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-"<title>jQuery UI Slider - Default functionality</title>"
 "<link rel=\"stylesheet\" href=\"https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css\">"
 "<script src=\"https://code.jquery.com/jquery-1.12.4.js\"></script>"
 "<script src=\"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>"
 "<script>"
   "$( function() {"
-    "$(\"#slider\").slider({min: 0, max: 1023});"
+    "$(\"#slider\").slider({min: 0, max: 1023, value:[]});"
     "$(\"#slider\").on(\"slide\","
       "function(event, ui) {"
         "$.get(\"/dv?dv=\" + ui.value);"
@@ -35,46 +35,45 @@
   "} );"
 "</script>"
 "<style>"
-  "header{"
-    "color: white;"
-    "background-color: #404040;"
+  "div.header {"
+    "font-family: Arial;"
+    "font-size: 300%;"
     "text-align: center;"
-    "font-family: verdana;"
-        "font-size: 200%;"
-    "}  "
-    "div.middle {"
-      "border: 1px solid gray;"
-      "margin-top: 20px;"
-      "height: 620px;"
-    "}"
-    "div.text {"
-      "height: 600px;"
-      "width: 500px;"
-      "border-right: 1px solid gray;"
-      "padding-left: 20px;"
-      "padding-top: 20px;"
-    "}"
-    "normalText{"
-      "font-family: verdana;"
-    "}"
+    "background-color: #404040;"
+    "color: white;"
+    "padding: 3%;"
+  "}"
+  "div.dimDiv {"
+    "border: 2px solid black; "
+    "padding: 3%;"
+    "margin-top: 2%;"
+  "}"
+  "div.discription {"
+    "text-align: center;"
+    "border: 1px solid black;"
+    "margin-top: 10%;"
+    "padding: 5%;"
+    "font-size: 120%;"
+    "font-family: Arial;"
+  "}"
 "</style>"
 "<body>"
-  "<header>"
-    "<h1>Lampen Dimmer</h1>"
-  "</header>"
-  "<div id=\"slider\">"
+  "<div class=\"header\">"
+    "Lamp Control"
   "</div>"
-  "<div class=\"middle\">"
-    "<div class=\"text\">"
-      "<div id=\"on\">"
+  "<div class=\"discription\">"
+    "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit eingestellt werden."
+  "</div>"
+  "<div class=\"dimDiv\" >"
+    "<div id=\"on\" style=\"margin-left: 48%;\">"
       "on"
-    "</div>"
+    "</div> "
     "<div id=\"off\">"
       "off"
     "</div>"
-      "<normalText>"
-        "Hier kann man die Lampe an und aus schalten!"
-      "</normalText>"
+  "</div>"
+  "<div class=\"dimDiv\">"
+    "<div id=\"slider\" style=\"width: 50%; margin: auto; margin-top: -1%; \">"
     "</div>"
   "</div>"
 "</body>"
@@ -90,7 +89,8 @@ void setup() {
   webServerInit();
   Serial.println(" ");
   Serial.println(" ");
-  Serial.println("Gebe eine Zahl zwischen 1 und 1023 ein:"); 
+  Serial.println("Verbinde dich mit dem WLAN < WLan-KI-Pro > mit dem Passwort < sVAPHCmo >");
+  Serial.println("Verbinde dich, mit der IP-Adresse, mit der Lamp Control Seite");
 }
 
 void loop() {
@@ -102,8 +102,7 @@ void loop() {
       preVal = atoi(strValPtr);
       if(preVal >0, preVal <=1023){
         val = preVal;
-        Serial.println(val);
-        Serial.println("Zahl wurde als Value uebernommen.");
+        lampControl();
       }
       else{
         Serial.println("Die Zahl muss zwischen 1 und 1023 liegen!");
@@ -114,7 +113,6 @@ void loop() {
       Serial.println("Die Zahl muss zwischen 1 und 1023 liegen!"); 
   }
   while (Serial.read() >=0);
-  analogWrite(lightPin, val);
   server.handleClient();
 }
 
@@ -169,9 +167,20 @@ void webServerInit(){
     server.send(200, "text/html", "404/Error");
   });
   server.on("/dv", [](){
-    Serial.println("dv");
+    delay(500);
+    httpGet = server.arg("dv");
+    val = atoi(httpGet.c_str());
+    lampControl();
   });
   server.begin();
   Serial.println("Webserver ist online");
- 
 }
+
+void lampControl(){
+  delay(500);
+  Serial.println("");
+  Serial.print(val);
+  Serial.println(" ist jetzt die Value.");
+  analogWrite(lightPin, val);
+}
+
