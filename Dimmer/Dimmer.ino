@@ -2,12 +2,12 @@
   #include <ESP8266WebServer.h>
   #include <ESP8266WiFi.h>
   
-  ESP8266WebServer server(80); //Webserver festlegen
-  const int LIGHT_PIN = 2; //Variabeln Initialisieren
-  //const int INPUT_STRING_LENGTH = 5;
-  const char SSID[] = "WLan-KI-Pro";
-  const char PASS[] = "sVAPHCmo";
-  const String HTML = "<!DOCTYPE html>" //HTML Code einbinden
+  ESP8266WebServer server(80); //Webserver wird festgelegt
+  //const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
+  const int LIGHT_PIN = 2; //Pin
+  const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
+  const char PASS[] = "sVAPHCmo"; //WLAN Passwort
+  const String HTML = "<!DOCTYPE html>"
   "<html>"
   "<head>"
   "<title> Lampen Dimmer </title>"
@@ -61,35 +61,35 @@
       "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit eingestellt werden."
     "</div>"
     "<div class = \"dimDiv\" >"
-      "<div id = \"on\" style = \"margin-left: 30%;\">"
+      "<div id = \"on\" style = \"margin-left: 30%;\">" //An Knopf
         "on"
       "</div> "
-      "<div id=\"off\">"
+      "<div id=\"off\">" //Aus Knopf
         "off"
       "</div>"
     "</div>"
     "<div class = \"dimDiv\">"
-      "<div id = \"slider\" style=\"width: 50%; margin: auto; margin-top: -1%; \">"
+      "<div id = \"slider\" style=\"width: 50%; margin: auto; margin-top: -1%; \">" //Dimmer Slider
       "</div>"
     "</div>"
   "</body>"
-  "</html>";
+  "</html>"; //HTML Code wird eingebunden
   
-void setup() { //Am Anfang aufrufen
-  Serial.begin(74880);
-  pinMode(LIGHT_PIN, OUTPUT);
-  analogWrite(LIGHT_PIN, 0);
+void setup() { //Wird zu Beginn einmal aufgerufen
+  Serial.begin(74880); 
+  pinMode(LIGHT_PIN, OUTPUT); //Setzt den Pin Modus auf Output
+  analogWrite(LIGHT_PIN, 0); //Schaltet die Lampe aus
   wlanConfig();
   webserverInit();
   instructions();
 }
 
-void loop() { //Schleife
-  //checkInput();
+void loop() { //Dauerschleife
+  //checkInput(); //Konsoleneingabe  (ist, aufgrund der Möglichkeit über die Website Werte einzugeben, unnötig)
   server.handleClient();
 }
 
-void instructions() { //Anweisungen geben
+void instructions() { //Gibt die WLAN Adresse und das Passwort an und sagt was man tun muss
   Serial.println("");
   Serial.println("");
   Serial.print("Verbinde dich mit dem WLAN < ");
@@ -101,63 +101,63 @@ void instructions() { //Anweisungen geben
   //Serial.println("Oder gebe in der Konsole einen Wert ein:");
 }
 
-//void checkInput() { //Gucken ob etwas in die Konsole eingegeben wurde und dann die richtigkeit dessen überprüfen
-//  if(Serial.available() < INPUT_STRING_LENGTH) {
-//    if(Serial.available() > 0) {
+//void checkInput() { //Prüft ob die, in die Konsole eingegebenen Werte, mit den Richtlinien übereinstimmen
+//  if(Serial.available() < INPUT_STRING_LENGTH) { //Guckt ob es nicht zu viele Zeichen sind
+//    if(Serial.available() > 0) { //Guckt ob es genug Zeichen sind
 //      delay(10);
 //      char inputString[INPUT_STRING_LENGTH];
 //      input(inputString);
 //      int value = atoi(inputString);
-//      if(value >= 0 && value <= 1023) {
+//      if(value >= 0 && value <= 1023) { //Guckt ob die Zahl in dem möglichem Bereich liegt
 //        lampControl(value);
 //      }
 //      else {
-//        Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!");
+//        Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
 //      }
 //    }
 //  }
 //  else {
-//      Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); 
+//      Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
 //  }
-//  while(Serial.read() >= 0);
+//  while(Serial.read() >= 0); //Löscht den Inhalt des Eingabefeldes
 //}
 //
-//void input(char * inputString) { //Die in der Konsole eingegebenen Daten einlesen und übergeben
+//void input(char * inputString) { //Liest den Inhalt des Eingabefeldes aus
 //  int inputCounter = 0;
-//  for(int resetCounter = 0; resetCounter <= INPUT_STRING_LENGTH-1; resetCounter++) {
+//  for(int resetCounter = 0; resetCounter <= INPUT_STRING_LENGTH-1; resetCounter++) { //Setzt die Counter zurück
 //          inputString[resetCounter] = '\0';
-//  }
-//  while(Serial.available() > 0, Serial.available() < INPUT_STRING_LENGTH) {
+//  } 
+//  while(Serial.available() > 0, Serial.available() < INPUT_STRING_LENGTH) { //Wird ausgeführt solange etwas im Eingabefeld steht
 //      char inputChar = Serial.read();
 //      inputString[inputCounter] = inputChar;
 //      inputCounter++;
-//      if(inputCounter >= INPUT_STRING_LENGTH-1) {
+//      if(inputCounter >= INPUT_STRING_LENGTH-1) { //Beendet die Funktion, wenn die Maximale Anzahl an Zeichen erfasst wurde
 //        inputString[INPUT_STRING_LENGTH-1] = '\0';
 //        break;
 //      }
 //  }
 //  if(Serial.available() < INPUT_STRING_LENGTH) {  
-//    inputString[inputCounter] = '\0';
+//    inputString[inputCounter] = '\0'; //Beendet die Funktion
 //  }
 //}
 
-void wlanConfig() { //Mit dem WLAN verbinden
+void wlanConfig() { //Die Verbindung mit dem WLAN wird hergestellt
   Serial.println("");
   Serial.println("Verbindungsversuch ");
   Serial.print("SSID: ");
   Serial.println(SSID);
-  WiFi.begin(SSID, PASS);
+  WiFi.begin(SSID, PASS); //WLAN Verbindung wird mit der Adresse und dem Passwort aufgebaut
   int connectionCounter = 0;
-  while (WiFi.status() != WL_CONNECTED && connectionCounter <= 20) {
+  while (WiFi.status() != WL_CONNECTED && connectionCounter <= 20) { //Wartet 10 Sekunden bis die WLAN Verbindung hergestellt worden ist
     delay(500);
     Serial.print(".");
     connectionCounter++;
   }
   Serial.println("");
-  if (WiFi.status() != WL_CONNECTED) {
+  if (WiFi.status() != WL_CONNECTED) { //Bricht den Verbindungsversuch ab wenn die WLAN Verbindung nicht besteht
     Serial.println("Verbindung zum WLAN konnte nicht hergestellt werden");
   }
-  else {
+  else { //Teilt, bei WLAN Verbindung, die IP-Adresse mit
     Serial.println("Verbindung zum WLAN wurde hergestellt");
     IPAddress ip = WiFi.localIP();
     Serial.print("Die Ip-Adresse lautet: ");
@@ -165,25 +165,24 @@ void wlanConfig() { //Mit dem WLAN verbinden
   }
 }
 
-void webserverInit() { //Webserver Seiten aufrufen und Daten entgegennehmen 
-  server.on("/", []() {
+void webserverInit() { //Webserver wird Initialisiert 
+  server.on("/", []() { //Zeigt die Website an
     server.send(200, "text/html", HTML);
   });
-  server.onNotFound([]() {
+  server.onNotFound([]() { //Zeigt, beim Aufruf einer nicht verhandenen Seite, eine Fehlermeldung an
     server.send(404, "text/html", "404/Error");
   });
-  server.on("/dv", []() {
-    //delay(500);
+  server.on("/dv", []() { //Reagiert auf HTTP Get
     String dvString = server.arg("dv");
     int value = atoi(dvString.c_str());
     lampControl(value);
-    server.send(200, "text/html", "");
+    server.send(200, "text/html", "");  //Sendet zurück, dass er die Nachricht bekommen hat
   });
-  server.begin();
+  server.begin(); //Webserver wird gestartet
   Serial.println("Webserver ist online");
 }
 
-void lampControl(int value) { //Helligkeitswert setzen
+void lampControl(int value) { //Schaltet die Lampe mit dem Wert "Value" ein
   Serial.println("");
   Serial.print(value);
   Serial.println(" ist jetzt die Value.");
