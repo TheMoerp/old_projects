@@ -3,11 +3,11 @@
   #include <ESP8266WiFi.h>
   
   ESP8266WebServer server(80); //Webserver wird festgelegt
+  int dimValue = 0; //PWM Wert
   //const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
   const int LIGHT_PIN = 2; //Pin
   const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
   const char PASS[] = "sVAPHCmo"; //WLAN Passwort
-  int dimValue = 0;
   const String HTML = "<!DOCTYPE html>"
   "<html>"
   "<head>"
@@ -20,12 +20,12 @@
   "<script src = \"https://code.jquery.com/jquery-1.12.4.js\"></script>"
   "<script src = \"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>"
   "<script>"
-    "$(document).ready(function(){"
-    "$.getJSON(\"/getInfo\", function(result){"
-      "$.each(result, function(i, field){"
-        "$( \"#slider\" ).slider( \"option\", \"value\", field );"
+    "$(document).ready(function(){" //Setzt den Slider auf den "dimValue" Wert, welcher auf dem Webserver geschpeichert ist
+      "$.getJSON(\"/getInfo\", function(result){"
+        "$.each(result, function(i, field){"
+          "$( \"#slider\" ).slider( \"option\", \"value\", field );"
         "});"
-        "});"
+      "});"
     "});"
     "$(function() {"
       "$(\"#slider\").slider({min: 0, max: 1023});"
@@ -36,7 +36,7 @@
       ");"
       "$(\"#on\").button().click(function() {$( \"#slider\" ).slider( \"option\", \"value\", 1023 ); $.get(\"/dv?dv=1023\"); });"
       "$(\"#off\").button().click(function() {$( \"#slider\" ).slider( \"option\", \"value\", 0 );  $.get(\"/dv?dv=0\"); });"
-    "} );"
+    "});"
   "</script>"
   "<style>"
     "div.header {"
@@ -188,12 +188,12 @@ void webserverInit() { //Webserver wird Initialisiert
     lampControl(dimValue);
     server.send(200, "text/html", "");  //Sendet zurück, dass er die Nachricht bekommen hat
   });
-    server.on("/getInfo", []() {
-     String valueJson = "{\"value\":" ;
-     valueJson += dimValue;
-     valueJson += "}";
-     server.send(200, "text/json", valueJson);
-    });
+  server.on("/getInfo", []() { //Übergibt dem HTML Code die Variable "dimValue"
+    String valueJson = "{\"value\":";
+    valueJson += dimValue;
+    valueJson += "}";
+    server.send(200, "text/json", valueJson);
+  });
   server.begin(); //Webserver wird gestartet
   Serial.println("Webserver ist online");
 }
