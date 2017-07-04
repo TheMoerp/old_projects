@@ -7,6 +7,7 @@
   const int LIGHT_PIN = 2; //Pin
   const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
   const char PASS[] = "sVAPHCmo"; //WLAN Passwort
+  int dimValue = 0;
   const String HTML = "<!DOCTYPE html>"
   "<html>"
   "<head>"
@@ -19,8 +20,15 @@
   "<script src = \"https://code.jquery.com/jquery-1.12.4.js\"></script>"
   "<script src = \"https://code.jquery.com/ui/1.12.1/jquery-ui.js\"></script>"
   "<script>"
-    "$( function() {"
-      "$(\"#slider\").slider({min: 0, max: 1023, value:[]});"
+    "$(document).ready(function(){"
+    "$.getJSON(\"/getInfo\", function(result){"
+      "$.each(result, function(i, field){"
+        "$( \"#slider\" ).slider( \"option\", \"value\", field );"
+        "});"
+        "});"
+    "});"
+    "$(function() {"
+      "$(\"#slider\").slider({min: 0, max: 1023});"
       "$(\"#slider\").on(\"slide\","
         "function(event, ui) {"
           "$.get(\"/dv?dv=\" + ui.value);"
@@ -71,6 +79,8 @@
     "<div class = \"dimDiv\">"
       "<div id = \"slider\" style=\"width: 50%; margin: auto; margin-top: -1%; \">" //Dimmer Slider
       "</div>"
+    "</div>"
+    "<div id=\"div\">"
     "</div>"
   "</body>"
   "</html>"; //HTML Code wird eingebunden
@@ -174,10 +184,16 @@ void webserverInit() { //Webserver wird Initialisiert
   });
   server.on("/dv", []() { //Reagiert auf HTTP Get
     String dvString = server.arg("dv");
-    int value = atoi(dvString.c_str());
-    lampControl(value);
+    dimValue = atoi(dvString.c_str());
+    lampControl(dimValue);
     server.send(200, "text/html", "");  //Sendet zurück, dass er die Nachricht bekommen hat
   });
+    server.on("/getInfo", []() {
+     String valueJson = "{\"value\":" ;
+     valueJson += dimValue;
+     valueJson += "}";
+     server.send(200, "text/json", valueJson);
+    });
   server.begin(); //Webserver wird gestartet
   Serial.println("Webserver ist online");
 }
