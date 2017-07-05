@@ -3,9 +3,13 @@
   #include <ESP8266WiFi.h>
   
   ESP8266WebServer server(80); //Webserver wird festgelegt
+  int intervalSec = 0; //Timer Zeit
+  int timeCounterUntilSec = 0;
+  unsigned long startTime = 0; //Zeit nachdem der Timer läuft
   int dimValue = 0; //PWM Wert
   //const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
   const int LIGHT_PIN = 2; //Pin
+  const int TIME_FACTOR = 60000; //1000=Sec, 60000=Min
   const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
   const char PASS[] = "sVAPHCmo"; //WLAN Passwort
   const String HTML = "<!DOCTYPE html>"
@@ -32,10 +36,18 @@
       "$(\"#slider\").on(\"slide\","
         "function(event, ui) {"
           "$.get(\"/dv?dv=\" + ui.value);"
-        "}"
-      ");"
+        "});"
       "$(\"#on\").button().click(function() {$( \"#slider\" ).slider( \"option\", \"value\", 1023 ); $.get(\"/dv?dv=1023\"); });"
       "$(\"#off\").button().click(function() {$( \"#slider\" ).slider( \"option\", \"value\", 0 );  $.get(\"/dv?dv=0\"); });"
+      "$(\"#send\").button().click(function(){$.get(\"/timer?timer=\" + $(\"#txt\").val());});"
+      "window.setInterval(function() {"
+        "$.getJSON(\"/getTimer\", function(result){"
+          "$.each(result, function(i, timer){"
+            "$(\"#time\").text(\"\"+timer);"
+          "});"
+        "});"
+      "}, 1000);"
+      "timer.play();"
     "});"
   "</script>"
   "<style>"
@@ -57,7 +69,7 @@
       "border: 1px solid black;"
       "margin-top: 10%;"
       "padding: 5%;"
-      "font-size: 110%;"
+      "font-size: 100%;"
       "font-family: Arial;"
     "}"
   "</style>"
@@ -66,7 +78,7 @@
       "Lamp Control"
     "</div>"
     "<div class = \"discription\">"
-      "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit eingestellt werden."
+      "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit und ein Sekunden Auschalttimer eingestellt werden."
     "</div>"
     "<div class = \"dimDiv\" >"
       "<div id = \"on\" style = \"margin-left: 30%;\">" //An Knopf
@@ -80,6 +92,15 @@
       "<div id = \"slider\" style=\"width: 50%; margin: auto; margin-top: -1%; \">" //Dimmer Slider
       "</div>"
     "</div>"
+    "<div class =\"dimDiv\">"
+      "<input type=\"text\" id=\"txt\">"
+      "</input>"
+      "<div id=\"send\" style=\"margin-left: 2%;\">"
+        "Start Timer"
+      "</div>"
+      "<div id=\"time\" style=\"font-family: Arial; color: #626262; background-color: #f6f6f6; border-radius: 4px; margin-top: 1.5%; border: 1px solid #acacac; text-align: center;\">"
+      "</div>"
+    "</div>"
     "<div id=\"div\">"
     "</div>"
   "</body>"
@@ -88,7 +109,6 @@
 void setup() { //Wird zu Beginn einmal aufgerufen
   Serial.begin(74880); 
   pinMode(LIGHT_PIN, OUTPUT); //Setzt den Pin Modus auf Output
-  analogWrite(LIGHT_PIN, 0); //Schaltet die Lampe aus
   wlanConfig();
   webserverInit();
   instructions();
@@ -97,6 +117,7 @@ void setup() { //Wird zu Beginn einmal aufgerufen
 void loop() { //Dauerschleife
   //checkInput(); //Konsoleneingabe  (ist, aufgrund der Möglichkeit über die Website Werte einzugeben, unnötig)
   server.handleClient();
+  execTimer(); //Timer wird ausgeführt
 }
 
 void instructions() { //Gibt die WLAN Adresse und das Passwort an und sagt was man tun muss
@@ -108,7 +129,8 @@ void instructions() { //Gibt die WLAN Adresse und das Passwort an und sagt was m
   Serial.print(PASS);
   Serial.println(" >");
   Serial.println("Verbinde dich, mit der IP-Adresse, mit der Lamp Control Seite");
-  //Serial.println("Oder gebe in der Konsole einen Wert ein:");
+  //Serial.println("Oder gebe in der Konsole einen Wert ein");
+  Serial.println("");
 }
 
 //void checkInput() { //Prüft ob die, in die Konsole eingegebenen Werte, mit den Richtlinien übereinstimmen
@@ -182,7 +204,7 @@ void webserverInit() { //Webserver wird Initialisiert
   server.onNotFound([]() { //Zeigt, beim Aufruf einer nicht verhandenen Seite, eine Fehlermeldung an
     server.send(404, "text/html", "404/Error");
   });
-  server.on("/dv", []() { //Reagiert auf HTTP Get
+  server.on("/dv", []() { //Reagiert auf HTTP Get für die Lampe
     String dvString = server.arg("dv");
     dimValue = atoi(dvString.c_str());
     lampControl(dimValue);
@@ -194,14 +216,59 @@ void webserverInit() { //Webserver wird Initialisiert
     valueJson += "}";
     server.send(200, "text/json", valueJson);
   });
+  server.on("/getTimer", []() { //Übergibt dem HTML Code die verbliebende Timer Zeit
+    String timeJson = "{\"time\":";
+    timeJson += timeCounterUntilSec;
+    timeJson += "}";
+    server.send(200, "text/json", timeJson);
+  });
+  server.on("/timer", []() { //Reagiert auf HTTP Get für den Timer
+    String timerString = server.arg("timer");
+    int timerInt = atoi(timerString.c_str());
+    setTimer(timerInt);
+    server.send(200, "text/html", "");
+  });
   server.begin(); //Webserver wird gestartet
   Serial.println("Webserver ist online");
 }
 
 void lampControl(int value) { //Schaltet die Lampe mit dem Wert "Value" ein
   Serial.println("");
+  Serial.print("Die Value wurde auf ");
   Serial.print(value);
-  Serial.println(" ist jetzt die Value.");
+  Serial.print(" gesetzt.");
+  if(timeCounterUntilSec > 0) {
+    Serial.print(" Noch ");
+    Serial.print(timeCounterUntilSec);
+    Serial.print(" Sekunden bis die Lampe ausgeschaltet wird.");
+  }
+  Serial.println("");
   analogWrite(LIGHT_PIN, value);
+}
+
+void setTimer(int offTimerSec) { //Die Timer Zeit sowie die Start Zeit wird gesetzt
+  intervalSec = offTimerSec;
+  Serial.println("");
+  Serial.print("Der Timer wurde auf ");
+  Serial.print(offTimerSec);
+  Serial.println(" Sekunden gesetzt.");
+  startTime = millis();
+}
+
+void execTimer() { //Der Timer wird ausgeführt
+  if(intervalSec != 0) {
+    unsigned long intervalMillis = intervalSec * TIME_FACTOR;
+    unsigned long currentMillis = millis();
+    static unsigned long timeCounterUntilMillis = 0;
+    unsigned long timeCounter = currentMillis - startTime;
+    timeCounterUntilMillis = intervalMillis - timeCounter;
+    timeCounterUntilSec = timeCounterUntilMillis / TIME_FACTOR; //Restliche Zeit wird ausgerechnet
+    if(timeCounter >= intervalMillis) { //Guckt ob die Zeit abgelaufen ist
+      Serial.println("");
+      Serial.println("Der Timer ist abgelaufen.");
+      lampControl(0); //Lampe wird ausgeschaltet
+      intervalSec = 0;
+    }
+  }
 }
 
