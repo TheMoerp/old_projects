@@ -3,13 +3,18 @@
   #include <ESP8266WiFi.h>
   
   ESP8266WebServer server(80); //Webserver wird festgelegt
-  int intervalSec = 0; //Timer Zeit
-  int timeCounterUntilSec = 0;
-  unsigned long startTime = 0; //Zeit nachdem der Timer läuft
+  boolean consoleStatus = false;
+  int intervalTimeUnit = 0; //Timer Zeit
+  int timerTimeTimeUnit = 0; //Zeigt die übrige Timerzeit an
+  unsigned long startTimeMs = 0; //Zeit nachdem der Timer läuft
   int dimValue = 0; //PWM Wert
-  //const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
+  int lampValue = 0;
+  const unsigned long DIMMER_INTERVAL_MS = 2;
+  const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
   const int LIGHT_PIN = 2; //Pin
-  const int TIME_FACTOR = 60000; //1000=Sec, 60000=Min
+  const int TIME_FACTOR = 1000; //1000=Sec, 60000=Min
+  const String TIME_UNIT = "Sekunden";
+  const int MAX_WLAN_CON_TRYS = 3;
   const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
   const char PASS[] = "sVAPHCmo"; //WLAN Passwort
   const String HTML = "<!DOCTYPE html>"
@@ -46,7 +51,7 @@
             "$(\"#time\").text(\"\"+timer);"
           "});"
         "});"
-      "}, 1000);"
+      "}, 100);"
       "timer.play();"
     "});"
   "</script>"
@@ -58,15 +63,18 @@
       "background-color: #404040;"
       "color: white;"
       "padding: 3%;"
+      "border-radius: 3px"
     "}"
     "div.dimDiv {"
-      "border: 2px solid black; "
+      "border: 2px solid #404040; "
       "padding: 3%;"
       "margin-top: 2%;"
+      "border-radius: 3px"
     "}"
     "div.discription {"
       "text-align: center;"
-      "border: 1px solid black;"
+      "border: 1px solid #404040;"
+      "border-radius: 3px"
       "margin-top: 10%;"
       "padding: 5%;"
       "font-size: 100%;"
@@ -78,7 +86,7 @@
       "Lamp Control"
     "</div>"
     "<div class = \"discription\">"
-      "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit und ein Sekunden Auschalttimer eingestellt werden."
+      "Mithilfe dieser Werkzeuge kann die Lampe an und aus geschaltet, sowie ihre Helligkeit und einen Auschalttimer eingestellt werden."
     "</div>"
     "<div class = \"dimDiv\" >"
       "<div id = \"on\" style = \"margin-left: 30%;\">" //An Knopf
@@ -110,90 +118,131 @@ void setup() { //Wird zu Beginn einmal aufgerufen
   Serial.begin(74880); 
   pinMode(LIGHT_PIN, OUTPUT); //Setzt den Pin Modus auf Output
   wlanConfig();
-  webserverInit();
-  instructions();
+  if(WiFi.status() != WL_CONNECTED) {
+  } else {
+    webserverInit();
+    instructions();
+  }
 }
 
 void loop() { //Dauerschleife
   //checkInput(); //Konsoleneingabe  (ist, aufgrund der Möglichkeit über die Website Werte einzugeben, unnötig)
+  if(consoleStatus = true) {
+    checkInput();
+  }
   server.handleClient();
   execTimer(); //Timer wird ausgeführt
+  execLampValue();
 }
 
 void instructions() { //Gibt die WLAN Adresse und das Passwort an und sagt was man tun muss
+  IPAddress ip = WiFi.localIP();
   Serial.println("");
   Serial.println("");
-  Serial.print("Verbinde dich mit dem WLAN < ");
-  Serial.print(SSID);
-  Serial.print(" > mit dem Passwort < ");
-  Serial.print(PASS);
-  Serial.println(" >");
-  Serial.println("Verbinde dich, mit der IP-Adresse, mit der Lamp Control Seite");
-  //Serial.println("Oder gebe in der Konsole einen Wert ein");
+  Serial.print("Du kannst dich jetzt mit dem WLAN verbinden und auf die Lamp Control Website zugreifen");
+  //Serial.println("Oder Gebe in der Konsole einen Wert für die Lampe ein.");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("|-----------INFOS-----------|");
+  Serial.println("");
+  Serial.print("  WLAN: ");
+  Serial.println(SSID);
+  Serial.println("");
+  Serial.print("  PASSWORT: ");
+  Serial.println(PASS);
+  Serial.println("");
+  Serial.print("  WEBSITE: ");
+  Serial.println(ip);
+  Serial.println("");
+  Serial.println("|-----------INFOS-----------|");
+  Serial.println("");
+  Serial.println("");
+  Serial.println("|------------LOG------------|");
   Serial.println("");
 }
 
-//void checkInput() { //Prüft ob die, in die Konsole eingegebenen Werte, mit den Richtlinien übereinstimmen
-//  if(Serial.available() < INPUT_STRING_LENGTH) { //Guckt ob es nicht zu viele Zeichen sind
-//    if(Serial.available() > 0) { //Guckt ob es genug Zeichen sind
-//      delay(10);
-//      char inputString[INPUT_STRING_LENGTH];
-//      input(inputString);
-//      int value = atoi(inputString);
-//      if(value >= 0 && value <= 1023) { //Guckt ob die Zahl in dem möglichem Bereich liegt
-//        lampControl(value);
-//      }
-//      else {
-//        Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
-//      }
-//    }
-//  }
-//  else {
-//      Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
-//  }
-//  while(Serial.read() >= 0); //Löscht den Inhalt des Eingabefeldes
-//}
-//
-//void input(char * inputString) { //Liest den Inhalt des Eingabefeldes aus
-//  int inputCounter = 0;
-//  for(int resetCounter = 0; resetCounter <= INPUT_STRING_LENGTH-1; resetCounter++) { //Setzt die Counter zurück
-//          inputString[resetCounter] = '\0';
-//  } 
-//  while(Serial.available() > 0, Serial.available() < INPUT_STRING_LENGTH) { //Wird ausgeführt solange etwas im Eingabefeld steht
-//      char inputChar = Serial.read();
-//      inputString[inputCounter] = inputChar;
-//      inputCounter++;
-//      if(inputCounter >= INPUT_STRING_LENGTH-1) { //Beendet die Funktion, wenn die Maximale Anzahl an Zeichen erfasst wurde
-//        inputString[INPUT_STRING_LENGTH-1] = '\0';
-//        break;
-//      }
-//  }
-//  if(Serial.available() < INPUT_STRING_LENGTH) {  
-//    inputString[inputCounter] = '\0'; //Beendet die Funktion
-//  }
-//}
+void checkInput() { //Prüft ob die, in die Konsole eingegebenen Werte, mit den Richtlinien übereinstimmen
+  if(Serial.available() < INPUT_STRING_LENGTH) { //Guckt ob es nicht zu viele Zeichen sind
+    if(Serial.available() > 0) { //Guckt ob es genug Zeichen sind
+      delay(10);
+      char inputString[INPUT_STRING_LENGTH];
+      input(inputString);
+      int value = atoi(inputString);
+      if(value >= 0 && value <= 1023) { //Guckt ob die Zahl in dem möglichem Bereich liegt
+        setLampValue(value);
+      }
+      else {
+        Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
+      }
+    }
+  }
+  else {
+      Serial.println("Die Zahl muss zwischen 0 und 1023 liegen!"); //Gibt Fehlermeldung aus
+  }
+  while(Serial.read() >= 0); //Löscht den Inhalt des Eingabefeldes
+}
+
+void input(char * inputString) { //Liest den Inhalt des Eingabefeldes aus
+  int inputCounter = 0;
+  for(int resetCounter = 0; resetCounter <= INPUT_STRING_LENGTH-1; resetCounter++) { //Setzt die Counter zurück
+          inputString[resetCounter] = '\0';
+  } 
+  while(Serial.available() > 0, Serial.available() < INPUT_STRING_LENGTH) { //Wird ausgeführt solange etwas im Eingabefeld steht
+      char inputChar = Serial.read();
+      inputString[inputCounter] = inputChar;
+      inputCounter++;
+      if(inputCounter >= INPUT_STRING_LENGTH-1) { //Beendet die Funktion, wenn die Maximale Anzahl an Zeichen erfasst wurde
+        inputString[INPUT_STRING_LENGTH-1] = '\0';
+        break;
+      }
+  }
+  if(Serial.available() < INPUT_STRING_LENGTH) {  
+    inputString[inputCounter] = '\0'; //Beendet die Funktion
+  }
+}
 
 void wlanConfig() { //Die Verbindung mit dem WLAN wird hergestellt
-  Serial.println("");
-  Serial.println("Verbindungsversuch ");
-  Serial.print("SSID: ");
-  Serial.println(SSID);
-  WiFi.begin(SSID, PASS); //WLAN Verbindung wird mit der Adresse und dem Passwort aufgebaut
-  int connectionCounter = 0;
-  while (WiFi.status() != WL_CONNECTED && connectionCounter <= 20) { //Wartet 10 Sekunden bis die WLAN Verbindung hergestellt worden ist
-    delay(500);
-    Serial.print(".");
-    connectionCounter++;
+  int wlanConTrys = 0;
+  while(WiFi.status() != WL_CONNECTED && wlanConTrys <= MAX_WLAN_CON_TRYS - 1) {
+    delay(1000);
+    wlanConTrys++;
+    Serial.println("");
+    Serial.print(wlanConTrys);
+    Serial.print(". ");
+    Serial.println("Verbindungsversuch");
+    WiFi.begin(SSID, PASS); //WLAN Verbindung wird mit der Adresse und dem Passwort aufgebaut
+    int connectionCounter = 0;
+    while (WiFi.status() != WL_CONNECTED && connectionCounter <= 20) { //Wartet 10 Sekunden bis die WLAN Verbindung hergestellt worden ist
+      delay(500);
+      Serial.print(".");
+      connectionCounter++;
+    }
+    Serial.println("");
+    if (WiFi.status() != WL_CONNECTED) { //Bricht den Verbindungsversuch ab wenn die WLAN Verbindung nicht besteht
+      Serial.print("< Verbindung zum WLAN konnte nicht hergestellt werden");
+      if(wlanConTrys <= MAX_WLAN_CON_TRYS - 1){
+        Serial.print(". Noch ");
+        Serial.print(MAX_WLAN_CON_TRYS - wlanConTrys);
+        Serial.print(" Verbindungsversuche");
+      }
+      Serial.println(" >");
+    }
+    else { //Teilt, bei WLAN Verbindung, die IP-Adresse mit
+      Serial.println("< Verbindung zum WLAN wurde hergestellt >");
+    }
   }
-  Serial.println("");
-  if (WiFi.status() != WL_CONNECTED) { //Bricht den Verbindungsversuch ab wenn die WLAN Verbindung nicht besteht
-    Serial.println("Verbindung zum WLAN konnte nicht hergestellt werden");
-  }
-  else { //Teilt, bei WLAN Verbindung, die IP-Adresse mit
-    Serial.println("Verbindung zum WLAN wurde hergestellt");
-    IPAddress ip = WiFi.localIP();
-    Serial.print("Die Ip-Adresse lautet: ");
-    Serial.println(ip);
+  if(WiFi.status() != WL_CONNECTED) {
+    consoleStatus = true;
+    Serial.println("");
+    Serial.print("Die Verbindung zum WLAN, konnte, nach ");
+    Serial.print(wlanConTrys);
+    Serial.println(" Verbindungsversuchen, nicht hergestellt werden.");
+    Serial.println("Die Konsole kann jetzt zum Eingeben der Werte benutzt werden.");
+    Serial.println("");
+    Serial.println("");
+    Serial.println("|------------LOG------------|");
+    Serial.println("");
   }
 }
 
@@ -207,7 +256,7 @@ void webserverInit() { //Webserver wird Initialisiert
   server.on("/dv", []() { //Reagiert auf HTTP Get für die Lampe
     String dvString = server.arg("dv");
     dimValue = atoi(dvString.c_str());
-    lampControl(dimValue);
+    setLampValue(dimValue);
     server.send(200, "text/html", "");  //Sendet zurück, dass er die Nachricht bekommen hat
   });
   server.on("/getInfo", []() { //Übergibt dem HTML Code die Variable "dimValue"
@@ -218,7 +267,7 @@ void webserverInit() { //Webserver wird Initialisiert
   });
   server.on("/getTimer", []() { //Übergibt dem HTML Code die verbliebende Timer Zeit
     String timeJson = "{\"time\":";
-    timeJson += timeCounterUntilSec;
+    timeJson += timerTimeTimeUnit;
     timeJson += "}";
     server.send(200, "text/json", timeJson);
   });
@@ -229,46 +278,67 @@ void webserverInit() { //Webserver wird Initialisiert
     server.send(200, "text/html", "");
   });
   server.begin(); //Webserver wird gestartet
-  Serial.println("Webserver ist online");
+  Serial.println("< Webserver ist online >");
 }
 
-void lampControl(int value) { //Schaltet die Lampe mit dem Wert "Value" ein
+void setLampValue(int newValue) {
+  lampValue = newValue;
   Serial.println("");
   Serial.print("Die Value wurde auf ");
-  Serial.print(value);
+  Serial.print(lampValue);
   Serial.print(" gesetzt.");
-  if(timeCounterUntilSec > 0) {
+  if(timerTimeTimeUnit > 0) {
     Serial.print(" Noch ");
-    Serial.print(timeCounterUntilSec);
-    Serial.print(" Sekunden bis die Lampe ausgeschaltet wird.");
+    Serial.print(timerTimeTimeUnit);
+    Serial.print(" ");
+    Serial.print(TIME_UNIT);
+    Serial.print(" bis die Lampe ausgeschaltet wird.");
   }
   Serial.println("");
-  analogWrite(LIGHT_PIN, value);
 }
 
-void setTimer(int offTimerSec) { //Die Timer Zeit sowie die Start Zeit wird gesetzt
-  intervalSec = offTimerSec;
-  Serial.println("");
-  Serial.print("Der Timer wurde auf ");
-  Serial.print(offTimerSec);
-  Serial.println(" Sekunden gesetzt.");
-  startTime = millis();
-}
-
-void execTimer() { //Der Timer wird ausgeführt
-  if(intervalSec != 0) {
-    unsigned long intervalMillis = intervalSec * TIME_FACTOR;
-    unsigned long currentMillis = millis();
-    static unsigned long timeCounterUntilMillis = 0;
-    unsigned long timeCounter = currentMillis - startTime;
-    timeCounterUntilMillis = intervalMillis - timeCounter;
-    timeCounterUntilSec = timeCounterUntilMillis / TIME_FACTOR; //Restliche Zeit wird ausgerechnet
-    if(timeCounter >= intervalMillis) { //Guckt ob die Zeit abgelaufen ist
-      Serial.println("");
-      Serial.println("Der Timer ist abgelaufen.");
-      lampControl(0); //Lampe wird ausgeschaltet
-      intervalSec = 0;
+void execLampValue() {
+  static int previousValue = 0;
+  unsigned long currentTimeMs = millis();
+  static unsigned long previousTimeMs = 0;
+  if(lampValue != previousValue) {
+    if(previousTimeMs + DIMMER_INTERVAL_MS < currentTimeMs) {
+      previousTimeMs = currentTimeMs;
+      int directionFactor = (previousValue > lampValue) ? 1 : -1;
+      previousValue = previousValue - 1 * directionFactor;
+      analogWrite(LIGHT_PIN, previousValue);
     }
   }
 }
+void setTimer(int offTimerTimeUnit) { //Die Timer Zeit sowie die Start Zeit wird gesetzt
+  intervalTimeUnit = offTimerTimeUnit;
+  startTimeMs = millis();
+  Serial.println("");
+  Serial.print("Der Timer wurde auf ");
+  Serial.print(offTimerTimeUnit);
+  Serial.print(" ");
+  Serial.print(TIME_UNIT);
+  Serial.println(" gesetzt.");
+}
+
+void execTimer() { //Der Timer wird ausgeführt
+  if(intervalTimeUnit != 0) {
+    unsigned long intervalMs = intervalTimeUnit * TIME_FACTOR;
+    unsigned long currentMs = millis();
+    unsigned long timeCounterUntilMs = 0;
+    unsigned long timeCounterMs = currentMs - startTimeMs;
+    timeCounterUntilMs = intervalMs - timeCounterMs;
+    timerTimeTimeUnit = timeCounterUntilMs / TIME_FACTOR; //Restliche Zeit wird ausgerechnet
+    timerTimeTimeUnit = timerTimeTimeUnit + 1;
+    if(timeCounterMs >= intervalMs) { //Guckt ob die Zeit abgelaufen ist
+      Serial.println("");
+      Serial.println("Der Timer ist abgelaufen.");
+      intervalTimeUnit = 0;
+      timerTimeTimeUnit = 0;
+      setLampValue(0); //Lampe wird ausgeschaltet
+    }
+  }
+}
+
+
 
