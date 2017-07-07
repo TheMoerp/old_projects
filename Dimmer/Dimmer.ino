@@ -10,7 +10,8 @@
   const char PASS[] = "sVAPHCmo"; //WLAN Passwort
   const String TIME_UNIT = "Minuten"; //Timer: Sekunden / Minuten
   const unsigned long DIMMER_INTERVAL_MS = 0.1; //Dim Geschwindigkeit
-
+  const unsigned long HEART_BEAT_MS = 60000;
+  
   //Nicht änderbare Variablen
   boolean consoleStatus = false;
   int intervalTimeUnit = 0; //Timer Zeit
@@ -120,18 +121,7 @@
 void setup() { //Wird zu Beginn einmal aufgerufen
   Serial.begin(74880); 
   pinMode(LIGHT_PIN, OUTPUT); //Setzt den Pin Modus auf Output
-  if(TIME_UNIT == "Sekunden") {
-    timeFactor = 1000;
-  }
-  if(TIME_UNIT == "Minuten") {
-    timeFactor = 60000;
-  } else {
-    Serial.print("Der Zeitfaktor ");
-    Serial.print(TIME_UNIT);
-    Serial.println(" ist falsch. Du kannst nur zwischen Sekunden und Minuten wählen.");
-    while(timeFactor != 1000 && timeFactor != 60000) {
-    }
-  }
+  checkTimeFactor();
   wlanConfig();
   if(WiFi.status() != WL_CONNECTED) {
   } else {
@@ -147,8 +137,31 @@ void loop() { //Dauerschleife
   server.handleClient();
   execTimer(); //Timer wird ausgeführt
   execLampValue();
+  checkWlan();
+  heartBeat();
 }
 
+void checkTimeFactor() {
+  if(TIME_UNIT == "Sekunden") {
+    timeFactor = 1000;
+  }
+  if(TIME_UNIT == "Minuten") {
+    timeFactor = 60000;
+  } else {
+    Serial.print("Der Zeitfaktor ");
+    Serial.print(TIME_UNIT);
+    Serial.println(" ist falsch. Du kannst nur zwischen Sekunden und Minuten wählen.");
+    while(timeFactor != 1000 && timeFactor != 60000) {
+    }
+  }
+}
+
+void checkWlan() {
+  if(WiFi.status() != WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("< Die WLAN-Verbindung wurde unterbrochen >");
+  }
+}
 void instructions() { //Gibt die WLAN Adresse und das Passwort an und sagt was man tun muss
   IPAddress ip = WiFi.localIP();
   Serial.println("");
@@ -323,6 +336,18 @@ void execLampValue() {  //Schaltet die Lampe mit "DIMMER_INTERVAK_MS" Geschwindi
       analogWrite(LIGHT_PIN, previousValue);
     }
   }
+}
+
+void heartBeat() {  //Schaltet die Lampe mit "DIMMER_INTERVAK_MS" Geschwindigkeit aus
+  static int previousValue = 0;
+  unsigned long currentTimeMs = millis();
+  static unsigned long previousTimeMs = 0;
+
+    if(previousTimeMs + HEART_BEAT_MS < currentTimeMs) {
+      previousTimeMs = currentTimeMs;
+      Serial.println("< System ist online >");
+    }
+  
 }
 
 void setTimer(int offTimerTimeUnit) { //Die Timer Zeit sowie die Start Zeit wird gesetzt
