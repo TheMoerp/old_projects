@@ -1,22 +1,25 @@
 
   #include <ESP8266WebServer.h>
   #include <ESP8266WiFi.h>
-  
   ESP8266WebServer server(80); //Webserver wird festgelegt
+  
+  //Änderbare Variablen
+  const int LIGHT_PIN = 2; //Nummer des Pins
+  const int MAX_WLAN_CON_TRYS = 3; //Maximale WLAN Verbindungsversuch Anzahl
+  const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
+  const char PASS[] = "sVAPHCmo"; //WLAN Passwort
+  const String TIME_UNIT = "Minuten"; //Timer: Sekunden / Minuten
+  const unsigned long DIMMER_INTERVAL_MS = 0.1; //Dim Geschwindigkeit
+
+  //Nicht änderbare Variablen
   boolean consoleStatus = false;
   int intervalTimeUnit = 0; //Timer Zeit
   int timerTimeTimeUnit = 0; //Zeigt die übrige Timerzeit an
-  unsigned long startTimeMs = 0; //Zeit nachdem der Timer läuft
   int dimValue = 0; //PWM Wert
   int lampValue = 0;
-  const unsigned long DIMMER_INTERVAL_MS = 2;
+  int timeFactor = 0;
+  unsigned long startTimeMs = 0; //Zeit nachdem der Timer läuft
   const int INPUT_STRING_LENGTH = 5; //Anzahl der möglichen Zeichen +1, die in die Konsole eingegeben werden können
-  const int LIGHT_PIN = 2; //Pin
-  const int TIME_FACTOR = 1000; //1000=Sec, 60000=Min
-  const String TIME_UNIT = "Sekunden";
-  const int MAX_WLAN_CON_TRYS = 3;
-  const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
-  const char PASS[] = "sVAPHCmo"; //WLAN Passwort
   const String HTML = "<!DOCTYPE html>"
   "<html>"
   "<head>"
@@ -117,6 +120,18 @@
 void setup() { //Wird zu Beginn einmal aufgerufen
   Serial.begin(74880); 
   pinMode(LIGHT_PIN, OUTPUT); //Setzt den Pin Modus auf Output
+  if(TIME_UNIT == "Sekunden") {
+    timeFactor = 1000;
+  }
+  if(TIME_UNIT == "Minuten") {
+    timeFactor = 60000;
+  } else {
+    Serial.print("Der Zeitfaktor ");
+    Serial.print(TIME_UNIT);
+    Serial.println(" ist falsch. Du kannst nur zwischen Sekunden und Minuten wählen.");
+    while(timeFactor != 1000 && timeFactor != 60000) {
+    }
+  }
   wlanConfig();
   if(WiFi.status() != WL_CONNECTED) {
   } else {
@@ -126,8 +141,7 @@ void setup() { //Wird zu Beginn einmal aufgerufen
 }
 
 void loop() { //Dauerschleife
-  //checkInput(); //Konsoleneingabe  (ist, aufgrund der Möglichkeit über die Website Werte einzugeben, unnötig)
-  if(consoleStatus = true) {
+  if(consoleStatus == true) { //Konsoleneingabe wird bei fehlender WLAN Verbindung aktiviert
     checkInput();
   }
   server.handleClient();
@@ -223,7 +237,7 @@ void wlanConfig() { //Die Verbindung mit dem WLAN wird hergestellt
       Serial.print("< Verbindung zum WLAN konnte nicht hergestellt werden");
       if(wlanConTrys <= MAX_WLAN_CON_TRYS - 1){
         Serial.print(". Noch ");
-        Serial.print(MAX_WLAN_CON_TRYS - wlanConTrys);
+        Serial.print(MAX_WLAN_CON_TRYS - wlanConTrys); //Hat eine Bestimmte Anzahl von Verbindungsversuchen
         Serial.print(" Verbindungsversuche");
       }
       Serial.println(" >");
@@ -281,7 +295,7 @@ void webserverInit() { //Webserver wird Initialisiert
   Serial.println("< Webserver ist online >");
 }
 
-void setLampValue(int newValue) {
+void setLampValue(int newValue) { //Setzt den Wert der Lampe
   lampValue = newValue;
   Serial.println("");
   Serial.print("Die Value wurde auf ");
@@ -297,7 +311,7 @@ void setLampValue(int newValue) {
   Serial.println("");
 }
 
-void execLampValue() {
+void execLampValue() {  //Schaltet die Lampe mit "DIMMER_INTERVAK_MS" Geschwindigkeit aus
   static int previousValue = 0;
   unsigned long currentTimeMs = millis();
   static unsigned long previousTimeMs = 0;
@@ -310,6 +324,7 @@ void execLampValue() {
     }
   }
 }
+
 void setTimer(int offTimerTimeUnit) { //Die Timer Zeit sowie die Start Zeit wird gesetzt
   intervalTimeUnit = offTimerTimeUnit;
   startTimeMs = millis();
@@ -323,12 +338,12 @@ void setTimer(int offTimerTimeUnit) { //Die Timer Zeit sowie die Start Zeit wird
 
 void execTimer() { //Der Timer wird ausgeführt
   if(intervalTimeUnit != 0) {
-    unsigned long intervalMs = intervalTimeUnit * TIME_FACTOR;
+    unsigned long intervalMs = intervalTimeUnit * timeFactor;
     unsigned long currentMs = millis();
     unsigned long timeCounterUntilMs = 0;
     unsigned long timeCounterMs = currentMs - startTimeMs;
     timeCounterUntilMs = intervalMs - timeCounterMs;
-    timerTimeTimeUnit = timeCounterUntilMs / TIME_FACTOR; //Restliche Zeit wird ausgerechnet
+    timerTimeTimeUnit = timeCounterUntilMs / timeFactor; //Restliche Zeit wird ausgerechnet
     timerTimeTimeUnit = timerTimeTimeUnit + 1;
     if(timeCounterMs >= intervalMs) { //Guckt ob die Zeit abgelaufen ist
       Serial.println("");
