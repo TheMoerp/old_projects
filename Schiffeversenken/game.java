@@ -110,13 +110,13 @@ public class game
             switch(caseNumber)
             {
                 case 1:
-                if(xK + shipLength > 9)
+                if(xK + shipLength > 11)
                 {
                     System.out.println("Das Schiff übertritt, auf der rechten oder linken seite, den Rand!");
                     failCeck = 1;
                 }
                 case 2:
-                if(yK + shipLength > 9)
+                if(yK + shipLength > 11)
                 {
                     System.out.println("Das Schiff übertritt, oben oder unten, den Rand!");
                     failCeck = 1;
@@ -226,7 +226,7 @@ public class game
             curPlayer = (curPlayer == 1) ? 2 : 1;
         }
         while(playerWin == 0);
-        
+
         if(playerWin != 0)
         {
             System.out.println("SPIELER "+ player +" HAT GEWONNEN!");
@@ -239,19 +239,22 @@ public class game
         {
             System.out.println("Sie haben ein feindliches Schiff getroffen!");
             int localShipSinkHelper = curField[bombY-1][bombX-1];
-            curField[bombY-1][bombY-1] = 0;
+            //System.out.println("*** localssh "+localShipSinkHelper);
+            curField[bombY-1][bombX-1] = 0;
             playerWin = curPlayer;
             for(int i=0;i<10 && localShipSearch == 0;i++)
             { 
                 for(int j=0;j<10 && localShipSearch == 0;j++)
-                { 
+                { //System.out.println("*** analysing "+i+","+j+":"+curField[i][j]);
                     if(curField[i][j] == localShipSinkHelper)
                     {
                         localShipSearch = 1;
+                        //System.out.println("***1");
                     }
                     if(curField[i][j] != 0)
                     {
                         playerWin = 0;
+                        //System.out.println("***2");
                     }
                 }
             }
@@ -286,6 +289,6 @@ public class game
         else
         {
             innerFire(curPlayer, FIELD2, xK, yK);
-        {
+        }
     }
 }
