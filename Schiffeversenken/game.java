@@ -8,17 +8,25 @@ import java.util.*;
 public class game
 {
     Scanner s = new Scanner(System.in);
-    final int SHIP_NUMBER = 1;
-    final int SHIP_2_NUMBER = 1;
-    final int SHIP_3_NUMBER = 0;
-    final int SHIP_4_NUMBER = 0;
+    final int FIELD_LENGTH = 10;
+    final int SHIP2_NUMBER = 1;
+    final int SHIP3_NUMBER = 1;
+    final int SHIP4_NUMBER = 1;
+    final int SHIP_NUMBER = SHIP2_NUMBER + SHIP3_NUMBER + SHIP4_NUMBER;
+
+    final int SHIP2_CODE = 0;
+    final int SHIP3_CODE = 1;
+    final int SHIP4_CODE = 2;
+
+    // erster Index: Spieler, zweiter Index: Schiffsart
+    int[][] shipNumbers = {{SHIP2_NUMBER, SHIP3_NUMBER, SHIP4_NUMBER}, {SHIP2_NUMBER, SHIP3_NUMBER, SHIP4_NUMBER}};
+
     int xK, yK, shipLength, playerWin;
     char shipDirection;
-    int[][] FIELD1;
-    int[][] FIELD2;
-    int failCeck = 0;
+    int[][] field0;
+    int[][] field1;
+    boolean failCeck = false;
     char[] border = {'A','B','C','D','E','F','G','H','I','J'};
-    int player = 1;
     int shipSinkHelper = 0;
 
     public game()
@@ -27,68 +35,91 @@ public class game
         battleFunktion();
     }
 
+    public int visualPlayerNumber(int internalPlayerNumber)
+    {
+        return internalPlayerNumber + 1;
+    }
+
     public void field()
     {
-        shipNumberTest();
-        FIELD1 = new int [10][10];
-        FIELD2 = new int [10][10];
+        shipSinkHelper = 0;
+        int curPlayer = 0;
+        field0 = new int [FIELD_LENGTH][FIELD_LENGTH];
+        field1 = new int [FIELD_LENGTH][FIELD_LENGTH];
         for(int i = 0; i < 2; i++)
         {
             do
             {
-                System.out.println("");
-                System.out.print("Spieler ");
-                System.out.print(player);
-                System.out.println(" muss jetzt seine Schiffe positionieren");
-                failCeck = 0;
-                for(int shipCounter = 0; shipCounter < SHIP_NUMBER && failCeck == 0; shipCounter++)
+                shipNumbers[curPlayer][0] = SHIP2_NUMBER;
+                shipNumbers[curPlayer][1] = SHIP3_NUMBER;
+                shipNumbers[curPlayer][2] = SHIP4_NUMBER;
+                System.out.println();
+                System.out.println("- Spieler "+ visualPlayerNumber(curPlayer) +" muss jetzt seine Schiffe positionieren -");
+                System.out.println();
+                failCeck = false;
+                for(int shipCounter = 0; shipCounter < SHIP_NUMBER && failCeck == false; shipCounter++)
                 {
-                    shipattributes();
-                    shipInit();
+                    shipattributes(curPlayer);
+                    shipInit(curPlayer);
                 }
             }
-            while(failCeck == 1);
-            showField();
-            player = 2;
+            while(failCeck);
+            showField(curPlayer);
+            curPlayer = 1;
             shipSinkHelper = 0;
         }
-        player = 1;
+        curPlayer = 0;
     }
 
-    public void shipNumberTest()
+    public boolean remainingShips(int curPlayer)
     {
-        if(SHIP_2_NUMBER + SHIP_3_NUMBER + SHIP_4_NUMBER != SHIP_NUMBER)
+        boolean localShipFail = false;
+
+        if (shipNumbers[curPlayer][shipLength - 2] == 0) 
         {
-            System.out.println("Die Anzahl der zu setzenden Schiffe stimmt nicht mit der Anzahl der Schiffstypen überein. Bitte ändern sie dies und starten sie das Programm neu!");
-            do
-            {
-            }
-            while(true);
+            localShipFail = true;
+        } 
+        else 
+        {
+            shipNumbers[curPlayer][shipLength - 2] --;
         }
+
+        return localShipFail;
     }
 
-    public void shipattributes()
+    public void shipattributes(int curPlayer)
     {
-        shipSinkHelper++;
         int caseNumber = 0;
+        shipSinkHelper++;
         do{
             System.out.print("Geben sie die x-Koordinate des Schiffes ein: ");
             xK = s.nextInt();
-            System.out.println("");
+            System.out.println();
             System.out.print("Geben sie die y-Koordinate des Schiffes ein: ");
             yK = s.nextInt();
-            System.out.println("");
-            System.out.println("");
-            System.out.print("Verfügbare Schiffe: 2er: "+ SHIP_2_NUMBER +", 3er: "+ SHIP_3_NUMBER + ", 4er: "+ SHIP_4_NUMBER);
-            System.out.println(""); 
-            System.out.print("Geben sie die Länge des Schiffes welches sie setzen möchten ein: ");
-            shipLength = s.nextInt();
+            System.out.println();
+
+            System.out.println("Verfügbare Schiffe: 2er: "+ shipNumbers[curPlayer][0] +", 3er: "+ shipNumbers[curPlayer][1] + ", 4er: "+ shipNumbers[curPlayer][2]);
+
+            boolean shipFail;
+            do
+            {
+                System.out.println(); 
+                System.out.print("Geben sie die Länge des Schiffes welches sie setzen möchten ein: ");
+                shipLength = s.nextInt();
+                shipFail = remainingShips(curPlayer);
+                if(shipFail)
+                {
+                    System.out.println("Diese Art von Schiffen ist nicht mehr verfügbar!");
+                }
+            }
+            while(shipFail);
             do{
-                failCeck = 0;
-                System.out.println("");
+                failCeck = false;
+                System.out.println();
                 System.out.print("Geben sie, um die Ausrichtung des Schiffes festzugelegen, für Wagerecht ein w und für Senkrecht ein s ein: ");
                 shipDirection = s.next().charAt(0);
-                System.out.println("");
+                System.out.println();
                 if(shipDirection == 'w' || shipDirection == 's')
                 {
                     if(shipDirection == 'w')
@@ -103,133 +134,129 @@ public class game
                 else
                 {
                     System.out.println("Dieses Zeichen wurde nicht erkannt!");
-                    failCeck = 1;
+                    failCeck = true;
                 }
             }
-            while(failCeck == 1);
+            while(failCeck);
             switch(caseNumber)
             {
                 case 1:
-                if(xK + shipLength > 11)
+                if(xK + shipLength > FIELD_LENGTH + 1)
                 {
                     System.out.println("Das Schiff übertritt, auf der rechten oder linken seite, den Rand!");
-                    failCeck = 1;
+                    failCeck = true;
                 }
                 case 2:
-                if(yK + shipLength > 11)
+                if(yK + shipLength > FIELD_LENGTH + 1)
                 {
                     System.out.println("Das Schiff übertritt, oben oder unten, den Rand!");
-                    failCeck = 1;
+                    failCeck = true;
                 }
             }
-            System.out.println("");
+            System.out.println();
         }
-        while(failCeck == 1);
-        System.out.println("");
+        while(failCeck);
+        System.out.println();
         System.out.println("Das Schiff wurde positioniert");
-        System.out.println("");
+        System.out.println();
     }
 
-    public void shipInit()
+    private void setShipS(int[][] curField, int curXK, int curYK, int curFieldPos)
+    {
+        if(curField[curYK - 1 + curFieldPos][curXK - 1] == 0)
+        {
+            curField[curYK - 1 + curFieldPos][curXK - 1] = shipSinkHelper;
+        }
+        else
+        {
+            failCeck = true;
+        }
+    }
+
+    private void setShipW(int[][] curField, int curXK, int curYK, int curFieldPos)
+    {
+        if(curField[curYK - 1][curXK - 1 + curFieldPos] == 0)
+        {
+            curField[curYK - 1][curXK - 1 + curFieldPos] = shipSinkHelper;
+        }
+        else
+        {
+            failCeck = true;
+        }
+    }
+
+    public void shipInit(int curPlayer)
     {
         for(int fieldPos = 0; fieldPos < shipLength; fieldPos++)
         {
             if(shipDirection == 's')
             {   
-                if(player == 1)
+                if(curPlayer == 0)
                 {
-                    if(FIELD1[yK - 1 + fieldPos][xK - 1] == 0)
-                    {
-                        FIELD1[yK - 1 + fieldPos][xK - 1] = shipSinkHelper;
-                    }
-                    else
-                    {
-                        failCeck = 1;
-                    }
+                    setShipS(field0, xK, yK, fieldPos);
                 }
                 else
                 {
-                    if(FIELD2[yK - 1 + fieldPos][xK - 1] == 0)
-                    {
-                        FIELD2[yK - 1 + fieldPos][xK - 1] = shipSinkHelper;
-                    }
-                    else
-                    {
-                        failCeck = 1;
-                    }
+                    setShipS(field1, xK, yK, fieldPos);
                 }
             }
             else
             {
-                if(player == 1)
+                if(curPlayer == 0)
                 {
-                    if(FIELD1[yK - 1][xK - 1 + fieldPos] == 0)
-                    {
-                        FIELD1[yK - 1][xK - 1 + fieldPos] = shipSinkHelper;
-                    }
-                    else
-                    {
-                        failCeck = 1;
-                    }
+                    setShipW(field0, xK, yK, fieldPos);
                 }
                 else
                 {
-                    if(FIELD2[yK - 1][xK - 1 + fieldPos] == 0)
-                    {
-                        FIELD2[yK - 1][xK - 1 + fieldPos] = shipSinkHelper;
-                    }
-                    else
-                    {
-                        failCeck = 1;
-                    }
+                    setShipW(field1, xK, yK, fieldPos);
                 }
             } 
         }
-        if(failCeck == 1)
+        if(failCeck)
         {
             System.out.println("Die Positionen ihrer Schiffe überschneiden sich!");
         }
-        System.out.println("");
+        System.out.println();
     }
 
-    public void showField()
+    public void showField(int curPlayer)
     {
-        for (int i=0;i<11;i++)
+        for (int i = 0; i < FIELD_LENGTH + 1; i++)
         {
             System.out.print(i + " ");
         }
-        System.out.println("");
-        for(int i=0;i<10;i++)
+        System.out.println();
+        for(int i = 0; i < FIELD_LENGTH; i++)
         { 
             System.out.print(border[i] + " ");
-            for(int j=0;j<10;j++)
+            for(int j = 0; j < FIELD_LENGTH; j++)
             { 
-                if(player == 1)
+                if(curPlayer == 0)
                 {
-                    System.out.print(FIELD1[i][j] + " ");
+                    System.out.print(field0[i][j] + " ");
                 }
                 else
                 {
-                    System.out.print(FIELD2[i][j] + " ");
+                    System.out.print(field1[i][j] + " ");
                 }
             }
-            System.out.println("");
+            System.out.println();
         }
     }
 
     public void battleFunktion()
     {
-        int curPlayer = 1;
+        int curPlayer = 0;
         do
         {
             fire(curPlayer);
-            curPlayer = (curPlayer == 1) ? 2 : 1;
+            curPlayer = (curPlayer == 0) ? 1 : 0;
         }
-        while(playerWin == 0);
+        while(playerWin == -1);
 
-        if(playerWin != 0)
+        if(playerWin != -1)
         {
-            System.out.println("SPIELER "+ player +" HAT GEWONNEN!");
+            System.out.println("SPIELER "+ visualPlayerNumber((curPlayer == 0) ? 1 : 0) +" HAT GEWONNEN!");
         }
     }
 
@@ -242,9 +269,9 @@ public class game
             //System.out.println("*** localssh "+localShipSinkHelper);
             curField[bombY-1][bombX-1] = 0;
             playerWin = curPlayer;
-            for(int i=0;i<10 && localShipSearch == 0;i++)
+            for(int i = 0; i < FIELD_LENGTH && localShipSearch == 0; i++)
             { 
-                for(int j=0;j<10 && localShipSearch == 0;j++)
+                for(int j = 0; j < FIELD_LENGTH && localShipSearch == 0; j++)
                 { //System.out.println("*** analysing "+i+","+j+":"+curField[i][j]);
                     if(curField[i][j] == localShipSinkHelper)
                     {
@@ -253,14 +280,14 @@ public class game
                     }
                     if(curField[i][j] != 0)
                     {
-                        playerWin = 0;
+                        playerWin = -1;
                         //System.out.println("***2");
                     }
                 }
             }
             if(localShipSearch == 0)
             {
-                System.out.println("Sie haben ein Schiff von Spieler " + ((curPlayer == 1) ? 2 : 1) + " versenkt!");
+                System.out.println("Sie haben ein Schiff von Spieler " + visualPlayerNumber((curPlayer == 0) ? 1 : 0) + " versenkt!");
             }
         }
         else
@@ -273,22 +300,22 @@ public class game
     public void fire(int curPlayer)
     {
         int shipSearch = 0;
-        System.out.println("Spieler "+ curPlayer + " muss jetzt schießen!");
-        System.out.println("");
+        System.out.println("Spieler "+ visualPlayerNumber(curPlayer) + " muss jetzt schießen!");
+        System.out.println();
         System.out.print("Gebe die x Koordiante ein: ");
         int xK = s.nextInt();
-        System.out.println("");
+        System.out.println();
         System.out.print("Gebe die y Koordiante ein: ");
         int yK = s.nextInt();
-        System.out.println("");
+        System.out.println();
         System.out.println("Sie schießen auf die Koordinaten ( "+ xK +" | "+ yK +" ).");
-        if(curPlayer == 2)
+        if(curPlayer == 1)
         {
-            innerFire(curPlayer, FIELD1, xK, yK);
+            innerFire(curPlayer, field0, xK, yK);
         }
         else
         {
-            innerFire(curPlayer, FIELD2, xK, yK);
+            innerFire(curPlayer, field1, xK, yK);
         }
     }
 }
