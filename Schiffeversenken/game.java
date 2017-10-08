@@ -26,6 +26,7 @@ public class game
         field();
         battleFunktion();
     }
+
     public void field()
     {
         shipNumberTest();
@@ -218,101 +219,73 @@ public class game
 
     public void battleFunktion()
     {
+        int curPlayer = 1;
         do
         {
-            fire();
-            if(player == 1)
-            {
-                player = 2;
-            }
-            else
-            {
-                player = 1;
-            }
+            fire(curPlayer);
+            curPlayer = (curPlayer == 1) ? 2 : 1;
         }
         while(playerWin == 0);
-        if(playerWin == 1)
+        
+        if(playerWin != 0)
         {
             System.out.println("SPIELER "+ player +" HAT GEWONNEN!");
         }
     }
 
-    public void fire()
-    {
-        int shipSearch = 0;
-        System.out.println("Spieler "+ player + " muss jetzt schießen!");
-        System.out.println("");
-        System.out.print("Gebe die x Koordiante ein: ");
-        xK = s.nextInt();
-        System.out.println("");
-        System.out.print("Gebe die y Koordiante ein: ");
-        yK = s.nextInt();
-        System.out.println("");
-        System.out.println("Sie schießen auf die Koordinaten ( "+ xK +" | "+ yK +" ).");
-        if(player == 2)
+    private void innerFire(int curPlayer, int[][] curField, int bombX, int bombY) {
+        int localShipSearch = 0;
+        if(curField[bombY-1][bombX-1] != 0)
         {
-            if(FIELD1[xK][yK] != 0)
-            {
-                System.out.println("Sie haben ein feindliches Schiff getroffen!");
-                shipSinkHelper = FIELD1[xK][yK];
-                FIELD1[xK][yK] = 0;
-                playerWin = 1;
-                for(int i=0;i<10 && shipSearch == 0;i++)
+            System.out.println("Sie haben ein feindliches Schiff getroffen!");
+            int localShipSinkHelper = curField[bombY-1][bombX-1];
+            curField[bombY-1][bombY-1] = 0;
+            playerWin = curPlayer;
+            for(int i=0;i<10 && localShipSearch == 0;i++)
+            { 
+                for(int j=0;j<10 && localShipSearch == 0;j++)
                 { 
-                    for(int j=0;j<10 && shipSearch == 0;j++)
-                    { 
-                        if(FIELD1[i][j] == shipSinkHelper)
-                        {
-                            shipSearch = 1;
-                        }
-                        if(FIELD1[i][j] != 0)
-                        {
-                            playerWin = 0;
-                        }
+                    if(curField[i][j] == localShipSinkHelper)
+                    {
+                        localShipSearch = 1;
+                    }
+                    if(curField[i][j] != 0)
+                    {
+                        playerWin = 0;
                     }
                 }
-                if(shipSearch == 0)
-                {
-                    System.out.println("Sie haben ein Schiff von Spieler 2 versenkt!");
-                }
             }
-            else
+            if(localShipSearch == 0)
             {
-                System.out.println("Sie haben leider nicht getroffen.");
+                System.out.println("Sie haben ein Schiff von Spieler " + ((curPlayer == 1) ? 2 : 1) + " versenkt!");
             }
         }
         else
         {
-            if(FIELD2[xK][yK] != 0)
-            {
-                System.out.println("Sie haben ein feindliches Schiff getroffen!");
-                shipSinkHelper = FIELD2[xK][yK];
-                FIELD2[xK][yK] = 0;
-                playerWin = 2;
-                for(int i=0;i<10 && shipSearch == 0;i++)
-                { 
-                    for(int j=0;j<10 && shipSearch == 0;j++)
-                    { 
-                        if(FIELD2[i][j] == shipSinkHelper)
-                        {
-                            shipSearch = 1;
-                        }
-                        if(FIELD2[i][j] != 0)
-                        {
-                            playerWin = 0;
-                        }
-                    }
-                }
-                if(shipSearch == 0)
-                {
-                    System.out.println("Sie haben ein Schiff von Spieler 1 versenkt!");
-                }
-            }
-            else
-            {
-                System.out.println("Sie haben leider nicht getroffen.");
-            }
+            System.out.println("Sie haben leider nicht getroffen.");
         }
 
+    }
+
+    public void fire(int curPlayer)
+    {
+        int shipSearch = 0;
+        System.out.println("Spieler "+ curPlayer + " muss jetzt schießen!");
+        System.out.println("");
+        System.out.print("Gebe die x Koordiante ein: ");
+        int xK = s.nextInt();
+        System.out.println("");
+        System.out.print("Gebe die y Koordiante ein: ");
+        int yK = s.nextInt();
+        System.out.println("");
+        System.out.println("Sie schießen auf die Koordinaten ( "+ xK +" | "+ yK +" ).");
+        if(curPlayer == 2)
+        {
+            innerFire(curPlayer, FIELD1, xK, yK);
+        }
+        else
+        {
+            innerFire(curPlayer, FIELD2, xK, yK);
+        {
     }
 }
