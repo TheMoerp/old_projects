@@ -1,0 +1,20 @@
+#BlueJ class context
+comment0.target=game
+comment0.text=\r\n\ Beschreiben\ Sie\ hier\ die\ Klasse\ Field.\r\n\ \r\n\ @author\ (Ihr\ Name)\ \r\n\ @version\ (eine\ Versionsnummer\ oder\ ein\ Datum)\r\n
+comment1.params=
+comment1.target=game()
+comment2.params=
+comment2.target=void\ field()
+comment3.params=
+comment3.target=void\ shipNumberTest()
+comment4.params=
+comment4.target=void\ shipattributes()
+comment5.params=
+comment5.target=void\ shipInit()
+comment6.params=
+comment6.target=void\ showField()
+comment7.params=
+comment7.target=void\ battleFunktion()
+comment8.params=
+comment8.target=void\ fire()
+numComments=9
