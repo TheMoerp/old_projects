@@ -6,8 +6,8 @@
   //Änderbare Variablen
   const int LIGHT_PIN = 2; //Nummer des Pins
   const int MAX_WLAN_CON_TRYS = 3; //Maximale WLAN Verbindungsversuch Anzahl
-  const char SSID[] = "WLan-KI-Pro"; //WLAN Adresse
-  const char PASS[] = "sVAPHCmo"; //WLAN Passwort
+  const char SSID[] = "TV_WLAN"; //WLAN Adresse
+  const char PASS[] = "geheim"; //WLAN Passwort
   const String TIME_UNIT = "Minuten"; //Timer: Sekunden / Minuten
   const unsigned long DIMMER_INTERVAL_MS = 0.1; //Dim Geschwindigkeit
   const unsigned long HEART_BEAT_MS = 60000;
@@ -230,6 +230,7 @@ void input(char * inputString) { //Liest den Inhalt des Eingabefeldes aus
 }
 
 void wlanConfig() { //Die Verbindung mit dem WLAN wird hergestellt
+  WiFi.mode(WIFI_STA);
   int wlanConTrys = 0;
   while(WiFi.status() != WL_CONNECTED && wlanConTrys <= MAX_WLAN_CON_TRYS - 1) {
     delay(1000);
